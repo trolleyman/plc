@@ -35,30 +35,36 @@ impl Display for Formula {
 			Ok(())
 		}
 		
+		let (not, and, or, implies, iff) = if !f.alternate() {
+			(STR_NOT, STR_AND, STR_OR, STR_IF, STR_IFF)
+		} else {
+			(STR_PRETTY_NOT, STR_PRETTY_AND, STR_PRETTY_OR, STR_PRETTY_IF, STR_PRETTY_IFF)
+		};
+		
 		match self {
 			&Var(ref c) => try!(f.write_char(*c)),
 			&Not(ref p) => {
-				try!(f.write_str(STR_NOT));
+				try!(f.write_str(not));
 				try!(brackets(&p, f));
 			},
 			&And(ref p, ref q) => {
 				try!(brackets(&p, f));
-				try!(f.write_str(STR_AND));
+				try!(f.write_str(and));
 				try!(brackets(&q, f));
 			},
 			&Or(ref p, ref q) => {
 				try!(brackets(&p, f));
-				try!(f.write_str(STR_OR));
+				try!(f.write_str(or));
 				try!(brackets(&q, f));
 			},
 			&Implies(ref p, ref q) => {
 				try!(brackets(&p, f));
-				try!(f.write_str(STR_IF));
+				try!(f.write_str(implies));
 				try!(brackets(&q, f));
 			},
 			&Iff(ref p, ref q) => {
 				try!(brackets(&p, f));
-				try!(f.write_str(STR_IFF));
+				try!(f.write_str(iff));
 				try!(brackets(&q, f));
 			}
 		}
@@ -77,14 +83,17 @@ mod tests {
 
 	#[test]
 	fn test_formula_display() {
-		fn test<'a>(f: &'a Formula, s: &'a str) {
+		fn test<'a>(f: &'a Formula, s: &'a str, sp: &'a str) {
 			let f_s = format!("{}", f);
+			let f_sp = format!("{:#}", f);
 			println!("[test_formula_display] {} == {} ? ... {}", f_s, s, yn(f_s == s));
 			assert_eq!(f_s, s);
+			println!("[test_formula_display] {} == {} ? ... {}", f_sp, s, yn(f_sp == sp));
+			assert_eq!(f_sp, sp);
 		}
-		use ::{var, not, and, or, implies, iff};
+		use ::prelude::*;
 		
-		test(&*implies(not(and(var('P'), var('Q'))), or(not(var('P')), not(var('Q')))), "(¬(P^Q))->(¬Pv¬Q)");//"(¬(P∧Q))→(¬P∨¬Q)");
-		test(&*iff(or(var('P'), var('Q')), or(var('Q'), var('P'))), "(PvQ)<->(QvP)");
+		test(&*implies(not(and(var('P'), var('Q'))), or(not(var('P')), not(var('Q')))), "(!(P^Q))->(!Pv!Q)", "(¬(P∧Q))→(¬P∨¬Q)");
+		test(&*iff(or(var('P'), var('Q')), or(var('Q'), var('P'))), "(PvQ)<->(QvP)", "(P∨Q)⇔(Q∨P)");
 	}
 }
