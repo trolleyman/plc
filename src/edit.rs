@@ -22,7 +22,7 @@ impl Line {
 	pub fn new(no: usize) -> Line {
 		Line {
 			no: no,
-			step: Vec::new(),
+			step: vec![Token::Not, Token::Var('P')],
 			method: String::new(),
 			deps: Vec::new(),
 		}
@@ -95,7 +95,7 @@ impl Cursor {
 	pub fn right(&mut self, lines: &[Line]) -> Result<(), ()> {
 		let l = match lines.get(self.no) {
 			Some(l) => l,
-			None    => { self = Cursor::new(0); return Err(()); },
+			None    => { *self = Cursor::new(0); return Err(()); },
 		};
 		self.i += 1;
 		match self.col {
@@ -125,7 +125,7 @@ impl Cursor {
 	pub fn left(&mut self, lines: &[Line]) -> Result<(), ()> {
 		let l = match lines.get(self.no) {
 			Some(l) => l,
-			None    => { self = Cursor::new(0); return Err(()); },
+			None    => { *self = Cursor::new(0); return Err(()); },
 		};
 		
 		if self.i == 0 {
@@ -136,18 +136,19 @@ impl Cursor {
 						self.col = Col::Method;
 						self.i = match lines.get(self.no) {
 							Some(l) => l.method().len(),
-							None    => { self = Cursor::new(0); return Err(()); },
-						}
+							None    => { *self = Cursor::new(0); return Err(()); },
+						};
 					}
 				}
 				Col::Method => {
 					self.col = Col::Step;
-					self.i = l.step().len()
+					self.i = l.step().len();
 				}
 			}
 		} else {
 			self.i -= 1;
 		}
+		Ok(())
 	}
 }
 
