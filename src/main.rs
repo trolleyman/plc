@@ -1,19 +1,19 @@
 #![feature(const_fn)]
 extern crate gtk;
-//extern crate gtk_sys;
+extern crate gdk;
 
 extern crate logic;
 
 use std::{mem, ptr};
 use gtk::{Window, WindowType};
-use logic::prelude::*;
 use gui::Gui;
 
 pub mod gui;
+pub mod edit;
 
 static mut g_gui: *mut Gui = ptr::null_mut();
 
-pub fn get_gui() -> Option<Gui> {
+pub fn get_gui() -> Option<&'static mut Gui> {
 	unsafe { if g_gui.is_null() {
 		None
 	} else {
