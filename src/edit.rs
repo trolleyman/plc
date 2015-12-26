@@ -86,7 +86,7 @@ impl Line {
 		}
 		
 		let mut method_str = String::with_capacity(self.method.len() + 8);
-		if c.no == self.no && c.col == Col::Method && (c.i < self.method.len() || self.method.len() == 0) {
+		if c.no == self.no && c.col == Col::Method && (c.i <= self.method.len() || self.method.len() == 0) {
 			let (a, b) = self.method.split_at(c.i);
 			if !f.alternate() {
 				for t in a {
