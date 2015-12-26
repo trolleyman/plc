@@ -7,14 +7,13 @@ use gdk::EventKey;
 use logic::Token;
 
 pub struct Line {
-	/// The line number of the proof, starting at 1.
+	/// The line number of the proof, starting at 0. It is only visually where everything is incremented
 	no: usize,
 	/// A step of the proof. e.g. (P^Q)->P. This is a vector of tokens that can be invalid.
 	step: Vec<Token>,
-	/// A string representing the method of the proof. This is guarenteed to be in the format
-	/// <methodName> + <space> + <derivedFromLines>
-	method: String,
-	//
+	/// A token string representing the method of the proof.
+	method: Vec<Token>,
+	/// Line numbers that this depends on. Line numbers start at 0.
 	deps: Vec<usize>,
 }
 impl Line {
@@ -22,9 +21,26 @@ impl Line {
 	pub fn new(no: usize) -> Line {
 		Line {
 			no: no,
-			step: vec![Token::Not, Token::Var('P')],
-			method: String::new(),
+			step: Vec::new(),
+			method: Vec::new(),
 			deps: Vec::new(),
+		}
+	}
+	/// Constructs a line with the specified tokens in the `step` field.
+	pub fn with_step(no: usize, step: Vec<Token>) -> Line {
+		Line {
+			no: no,
+			step: step,
+			method: Vec::new(),
+			deps: Vec::new(),
+		}
+	}
+	pub fn full(no: usize, step: Vec<Token>, method: Vec<Token>, deps: Vec<usize>) -> Line {
+		Line {
+			no: no,
+			step: step,
+			method: method,
+			deps: deps,
 		}
 	}
 	/// Gets the line number of the proof
@@ -36,7 +52,7 @@ impl Line {
 		&self.step
 	}
 	/// Gets a string that represents a method of the proof
-	pub fn method(&self) -> &str {
+	pub fn method(&self) -> &[Token] {
 		&self.method
 	}
 	
@@ -60,14 +76,47 @@ impl Line {
 		if c.no == self.no && c.col == Col::Step && c.i == self.step.len() {
 			step_str.push('|');
 		}
+		
 		let mut dep_str = String::with_capacity(self.deps.len() * 2);
 		for (i, dep) in self.deps.iter().enumerate() {
-			try!(write!(dep_str, "{}", dep));
+			try!(write!(dep_str, "{}", dep + 1));
 			if i < self.deps.len() - 1 {
 				dep_str.push_str(", ")
 			}
 		}
-		f.pad(&format!("{}.\t{}\t{}\t{{{}}}", self.no, step_str, self.method, dep_str))
+		
+		let mut method_str = String::with_capacity(self.method.len() + 8);
+		if c.no == self.no && c.col == Col::Method && (c.i < self.method.len() || self.method.len() == 0) {
+			let (a, b) = self.method.split_at(c.i);
+			if !f.alternate() {
+				for t in a {
+					try!(write!(method_str, "{}", t));
+				}
+				method_str.push('|');
+				for t in b {
+					try!(write!(method_str, "{}", t));
+				}
+			} else {
+				for t in a {
+					try!(write!(method_str, "{:#}", t));
+				}
+				method_str.push('|');
+				for t in b {
+					try!(write!(method_str, "{:#}", t));
+				}
+			}
+		} else {
+			if !f.alternate() {
+				for t in self.method.iter() {
+					try!(write!(method_str, "{}", t));
+				}
+			} else {
+				for t in self.method.iter() {
+					try!(write!(method_str, "{:#}", t));
+				}
+			}
+		}
+		f.pad(&format!("{: >3}. {: <20} {: <10} {{{}}}", self.no + 1, step_str, method_str, dep_str))
 	}
 }
 
@@ -76,6 +125,7 @@ pub enum Col {
 	Step,
 	Method,
 }
+#[derive(Debug)]
 pub struct Cursor {
 	/// Line number
 	no: usize,
@@ -85,9 +135,9 @@ pub struct Cursor {
 	i: usize,
 }
 impl Cursor {
-	pub fn new(no: usize) -> Cursor {
+	pub fn new() -> Cursor {
 		Cursor {
-			no: no,
+			no: 0,
 			col: Col::Step,
 			i: 0,
 		}
@@ -95,7 +145,7 @@ impl Cursor {
 	pub fn right(&mut self, lines: &[Line]) -> Result<(), ()> {
 		let l = match lines.get(self.no) {
 			Some(l) => l,
-			None    => { *self = Cursor::new(0); return Err(()); },
+			None    => { *self = Cursor::new(); return Err(()); },
 		};
 		self.i += 1;
 		match self.col {
@@ -108,12 +158,13 @@ impl Cursor {
 			}
 			Col::Method => {
 				if self.i > l.method().len() {
-					if self.no < lines.len() {
+					if self.no < lines.len() - 1 {
 						self.no += 1;
 						self.col = Col::Step;
 						self.i = 0;
 						Ok(())
 					} else {
+						self.i -= 1;
 						Err(())
 					}
 				} else {
@@ -125,18 +176,18 @@ impl Cursor {
 	pub fn left(&mut self, lines: &[Line]) -> Result<(), ()> {
 		let l = match lines.get(self.no) {
 			Some(l) => l,
-			None    => { *self = Cursor::new(0); return Err(()); },
+			None    => { *self = Cursor::new(); return Err(()); },
 		};
 		
 		if self.i == 0 {
 			match self.col {
 				Col::Step => {
-					if self.no > 1 {
+					if self.no > 0 {
 						self.no -= 1;
 						self.col = Col::Method;
 						self.i = match lines.get(self.no) {
 							Some(l) => l.method().len(),
-							None    => { *self = Cursor::new(0); return Err(()); },
+							None    => { *self = Cursor::new(); return Err(()); },
 						};
 					}
 				}
@@ -161,8 +212,9 @@ impl<'a> Editor {
 	/// Constructs a new editor
 	pub fn new() -> Editor {
 		Editor {
-			lines: vec![Line::new(1)],
-			cursor: Cursor::new(1),
+			lines: vec![Line::full(0, vec![Token::Char('P')], Token::from_str("Premise"), vec![0]),
+						Line::full(1, vec![Token::Not, Token::Not, Token::Char('P')], Token::from_str("¬I 1"), vec![0])],
+			cursor: Cursor::new(),
 		}
 	}
 	/// Gets a ref to the line numbered `v` in the proof.
@@ -193,14 +245,15 @@ impl<'a> Editor {
 				return Inhibit(false);
 			},
 		}
-		println!(" *** Editor *** \n{:?}", self);
+		println!(" *** Editor *** - Cursor: {:?} \n{:#?}", self.cursor, self);
 		Inhibit(true)
 	}
 }
 impl Debug for Editor {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
 		for l in self.lines.iter() {
-			try!(l.fmt_cursor(f, &self.cursor))
+			try!(l.fmt_cursor(f, &self.cursor));
+			try!(writeln!(f, ""));
 		}
 		Ok(())
 	}
