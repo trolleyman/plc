@@ -310,7 +310,9 @@ impl Cursor {
 	}
 	/// Delete the character behind the character. If on an empty line && at the start, delete line. If no chars behind, returns `Err(())`
 	pub fn backspace(&mut self, lines: &mut Lines) -> Result<(), ()> {
-		if lines[self.no].is_empty() && self.col == Col::Step {
+		if self.col == Col::Method && lines[self.no].method.is_empty() {
+			self.left(lines)
+		} else if lines[self.no].is_empty() && self.col == Col::Step {
 			if lines.len() == 1 {
 				return Err(());
 			}
