@@ -6,15 +6,16 @@ use gdk::EventKey;
 
 use logic::Token;
 
+#[derive(Clone)]
 pub struct Line {
 	/// The line number of the proof, starting at 0. It is only visually where everything is incremented
-	no: usize,
+	pub no: usize,
 	/// A step of the proof. e.g. (P^Q)->P. This is a vector of tokens that can be invalid.
-	step: Vec<Token>,
+	pub step: Vec<Token>,
 	/// A token string representing the method of the proof.
-	method: Vec<Token>,
+	pub method: Vec<Token>,
 	/// Line numbers that this depends on. Line numbers start at 0.
-	deps: Vec<usize>,
+	pub deps: Vec<usize>,
 }
 impl Line {
 	/// Constructs an empty line
@@ -42,18 +43,6 @@ impl Line {
 			method: method,
 			deps: deps,
 		}
-	}
-	/// Gets the line number of the proof
-	pub fn no(&self) -> usize {
-		self.no
-	}
-	/// Gets the tokens that represent a step of the proof
-	pub fn step(&self) -> &[Token] {
-		&self.step
-	}
-	/// Gets a string that represents a method of the proof
-	pub fn method(&self) -> &[Token] {
-		&self.method
 	}
 	
 	pub fn fmt_cursor(&self, f: &mut Formatter, c: &Cursor) -> Result<(), fmt::Error> {
@@ -125,7 +114,7 @@ pub enum Col {
 	Step,
 	Method,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Cursor {
 	/// Line number
 	no: usize,
@@ -142,6 +131,7 @@ impl Cursor {
 			i: 0,
 		}
 	}
+	/// Move the cursor to the right. Wrap at end of line. Error at end of text.
 	pub fn right(&mut self, lines: &[Line]) -> Result<(), ()> {
 		let l = match lines.get(self.no) {
 			Some(l) => l,
@@ -150,14 +140,14 @@ impl Cursor {
 		self.i += 1;
 		match self.col {
 			Col::Step => {
-				if self.i > l.step().len() {
+				if self.i > l.step.len() {
 					self.col = Col::Method;
 					self.i = 0;
 				}
 				Ok(())
 			}
 			Col::Method => {
-				if self.i > l.method().len() {
+				if self.i > l.method.len() {
 					if self.no < lines.len() - 1 {
 						self.no += 1;
 						self.col = Col::Step;
@@ -173,6 +163,7 @@ impl Cursor {
 			}
 		}
 	}
+	/// Move the cursor to the left. Wrap at start of line. Error at start of text.
 	pub fn left(&mut self, lines: &[Line]) -> Result<(), ()> {
 		let l = match lines.get(self.no) {
 			Some(l) => l,
@@ -186,19 +177,41 @@ impl Cursor {
 						self.no -= 1;
 						self.col = Col::Method;
 						self.i = match lines.get(self.no) {
-							Some(l) => l.method().len(),
+							Some(l) => l.method.len(),
 							None    => { *self = Cursor::new(); return Err(()); },
 						};
 					}
 				}
 				Col::Method => {
 					self.col = Col::Step;
-					self.i = l.step().len();
+					self.i = l.step.len();
 				}
 			}
 		} else {
 			self.i -= 1;
 		}
+		Ok(())
+	}
+	
+	/// Add a newline to `lines` if the cursor is at the end of the line.
+	pub fn newline(&mut self, lines: &mut Vec<Line>) -> Result<(), ()> {
+		if !(  (self.col == Col::Step && self.i == lines[self.no].step.len())
+			|| (self.col == Col::Method && self.i == lines[self.no].method.len())) {
+			// Don't place a newline if the cursor isn't at the end of the line.
+			return Err(());
+		}
+		
+		let no = self.no + 1;
+		for l in lines.iter_mut() {
+			if l.no >= no {
+				l.no += 1;
+			}
+		}
+		lines.insert(no, Line::new(no));
+		
+		self.no += 1;
+		self.i = 0;
+		
 		Ok(())
 	}
 }
@@ -241,11 +254,14 @@ impl<'a> Editor {
 			key::Left => {
 				let _ = self.cursor.left(&self.lines);
 			},
+			key::Return => {
+				let _ = self.cursor.newline(&mut self.lines);
+			},
 			_ => {
 				return Inhibit(false);
 			},
 		}
-		println!(" *** Editor *** - Cursor: {:?} \n{:#?}", self.cursor, self);
+		println!(" *** Editor *** - Cursor: {:?} \n{:?}", self.cursor, self);
 		Inhibit(true)
 	}
 }

@@ -1,5 +1,6 @@
 use std::fmt::{self, Write, Display, Formatter};
 
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Token {
 	Char(char),
 	Not,
@@ -53,6 +54,51 @@ impl Token {
 			}
 		}
 		
+		res
+	}
+	/// Simplify the token vector. E.g. convert `[Token::Char('-'), Token::Char('>')]` into `[Token::Implies]`
+	pub fn simplify_tokens(t: &[Token]) -> Vec<Token> {
+		use Token::*;
+		use consts::*;
+		
+		let mut res = Vec::with_capacity(t.len());
+		let mut ts = t;
+		while ts.len() > 0 {
+			if ts.starts_with(TOK_STR_NOT) {
+				ts = &ts[TOK_STR_NOT.len()..];
+				res.push(Not);
+			} else if ts.starts_with(TOK_STR_PRETTY_NOT) {
+				ts = &ts[TOK_STR_PRETTY_NOT.len()..];
+				res.push(Not);
+			} else if ts.starts_with(TOK_STR_AND) {
+				ts = &ts[TOK_STR_AND.len()..];
+				res.push(And);
+			} else if ts.starts_with(TOK_STR_PRETTY_AND) {
+				ts = &ts[TOK_STR_PRETTY_AND.len()..];
+				res.push(And);
+			} else if ts.starts_with(TOK_STR_OR) {
+				ts = &ts[TOK_STR_OR.len()..];
+				res.push(Or);
+			} else if ts.starts_with(TOK_STR_PRETTY_OR) {
+				ts = &ts[TOK_STR_PRETTY_OR.len()..];
+				res.push(Or);
+			} else if ts.starts_with(TOK_STR_IF) {
+				ts = &ts[TOK_STR_IF.len()..];
+				res.push(Implies);
+			} else if ts.starts_with(TOK_STR_PRETTY_IF) {
+				ts = &ts[TOK_STR_PRETTY_IF.len()..];
+				res.push(Implies);
+			} else if ts.starts_with(TOK_STR_IFF) {
+				ts = &ts[TOK_STR_IFF.len()..];
+				res.push(Iff);
+			} else if ts.starts_with(TOK_STR_PRETTY_IFF) {
+				ts = &ts[TOK_STR_PRETTY_IFF.len()..];
+				res.push(Iff);
+			} else {
+				res.push(ts[0]);
+				ts = &ts[1..];
+			}
+		}
 		res
 	}
 }
