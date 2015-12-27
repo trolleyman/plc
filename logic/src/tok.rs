@@ -10,6 +10,27 @@ pub enum Token {
 	Implies,
 	Iff,
 }
+impl Display for Token {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+		use Token::*;
+		use consts::*;
+		
+		let (not, and, or, implies, iff) = if !f.alternate() {
+			(STR_NOT, STR_AND, STR_OR, STR_IF, STR_IFF)
+		} else {
+			(STR_PRETTY_NOT, STR_PRETTY_AND, STR_PRETTY_OR, STR_PRETTY_IF, STR_PRETTY_IFF)
+		};
+		
+		match self {
+			&Char(ref c) => c.fmt(f),
+			&Not         => f.write_str(not),
+			&And         => f.write_str(and),
+			&Or          => f.write_str(or),
+			&Implies     => f.write_str(implies),
+			&Iff         => f.write_str(iff),
+		}
+	}
+}
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Tokens {
@@ -139,25 +160,11 @@ impl DerefMut for Tokens {
 		&mut self.inner
 	}
 }
-
-impl Display for Token {
+impl Display for Tokens {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-		use Token::*;
-		use consts::*;
-		
-		let (not, and, or, implies, iff) = if !f.alternate() {
-			(STR_NOT, STR_AND, STR_OR, STR_IF, STR_IFF)
-		} else {
-			(STR_PRETTY_NOT, STR_PRETTY_AND, STR_PRETTY_OR, STR_PRETTY_IF, STR_PRETTY_IFF)
-		};
-		
-		match self {
-			&Char(ref c) => c.fmt(f),
-			&Not         => f.write_str(not),
-			&And         => f.write_str(and),
-			&Or          => f.write_str(or),
-			&Implies     => f.write_str(implies),
-			&Iff         => f.write_str(iff),
+		for t in self.iter() {
+			try!(t.fmt(f));
 		}
+		Ok(())
 	}
 }

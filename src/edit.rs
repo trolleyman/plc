@@ -98,13 +98,9 @@ impl Line {
 			}
 		} else {
 			if !f.alternate() {
-				for t in self.method.iter() {
-					try!(write!(method_str, "{}", t));
-				}
+				try!(write!(method_str, "{}", self.method));
 			} else {
-				for t in self.method.iter() {
-					try!(write!(method_str, "{:#}", t));
-				}
+				try!(write!(method_str, "{:#}", self.method));
 			}
 		}
 		f.pad(&format!("{: >3}. {: <20} {: <10} {{{}}}", self.no + 1, step_str, method_str, dep_str))
@@ -365,7 +361,7 @@ pub struct Editor {
 	cursor: Cursor,
 }
 
-impl<'a> Editor {
+impl Editor {
 	/// Constructs a new editor
 	pub fn new() -> Editor {
 		Editor {
@@ -377,7 +373,7 @@ impl<'a> Editor {
 		}
 	}
 	/// Gets a ref to the line numbered `v` in the proof.
-	pub fn line(&'a self, v: usize) -> Option<&'a Line> {
+	pub fn line<'a>(&'a self, v: usize) -> Option<&'a Line> {
 		self.lines.get(v - 1)
 	}
 	/// Gets the number of lines in the proof.
