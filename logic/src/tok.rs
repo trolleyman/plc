@@ -1,4 +1,5 @@
 use std::fmt::{self, Write, Display, Formatter};
+use std::ops::{Deref, DerefMut};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Token {
@@ -10,12 +11,30 @@ pub enum Token {
 	Iff,
 }
 impl Token {
+	
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct Tokens {
+	inner: Vec<Token>
+}
+impl Tokens {
+	pub fn new() -> Tokens {
+		Tokens::from_vec(Vec::new())
+	}
+	
+	pub fn from_vec(v: Vec<Token>) -> Tokens {
+		Tokens {
+			inner: v
+		}
+	}
+	
 	/// Create a token vector from a string, normalizing the different forms of operators.
-	pub fn from_str(mut s: &str) -> Vec<Token> {
+	pub fn from_str(mut s: &str) -> Tokens {
 		use Token::*;
 		use consts::*;
 		
-		let mut res = Vec::with_capacity(s.len());
+		let mut res = Tokens::from_vec(Vec::with_capacity(s.len()));
 		while s.len() > 0 {
 			if s.starts_with(STR_NOT) {
 				s = &s[STR_NOT.len()..];
@@ -56,13 +75,14 @@ impl Token {
 		
 		res
 	}
+	
 	/// Simplify the token vector. E.g. convert `[Token::Char('-'), Token::Char('>')]` into `[Token::Implies]`
-	pub fn simplify_tokens(t: &[Token]) -> Vec<Token> {
+	pub fn simplify_tokens(&mut self) -> Tokens {
 		use Token::*;
 		use consts::*;
 		
-		let mut res = Vec::with_capacity(t.len());
-		let mut ts = t;
+		let mut res = Vec::with_capacity(self.len());
+		let mut ts: &[Token] = self.inner.as_ref();
 		while ts.len() > 0 {
 			if ts.starts_with(TOK_STR_NOT) {
 				ts = &ts[TOK_STR_NOT.len()..];
@@ -99,7 +119,18 @@ impl Token {
 				ts = &ts[1..];
 			}
 		}
-		res
+		Tokens::from_vec(res)
+	}
+}
+impl Deref for Tokens {
+	type Target = Vec<Token>;
+	fn deref(&self) -> &Vec<Token> {
+		&self.inner
+	}
+}
+impl DerefMut for Tokens {
+	fn deref_mut(&mut self) -> &mut Vec<Token> {
+		&mut self.inner
 	}
 }
 

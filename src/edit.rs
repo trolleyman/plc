@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use gtk::signal::Inhibit;
 use gdk::EventKey;
 
-use logic::Token;
+use logic::{Token, Tokens};
 
 #[derive(Clone)]
 pub struct Lines {
@@ -62,9 +62,9 @@ pub struct Line {
 	/// The line number of the proof, starting at 0. It is only visually where everything is incremented
 	pub no: usize,
 	/// A step of the proof. e.g. (P\^Q)->P. This is a vector of tokens that can be invalid.
-	pub step: Vec<Token>,
+	pub step: Tokens,
 	/// A token string representing the method of the proof.
-	pub method: Vec<Token>,
+	pub method: Tokens,
 	/// Line numbers that this depends on. Line numbers start at 0.
 	pub deps: Vec<usize>,
 }
@@ -73,21 +73,21 @@ impl Line {
 	pub fn new(no: usize) -> Line {
 		Line {
 			no: no,
-			step: Vec::new(),
-			method: Vec::new(),
+			step: Tokens::new(),
+			method: Tokens::new(),
 			deps: Vec::new(),
 		}
 	}
 	/// Constructs a line with the specified tokens in the `step` field.
-	pub fn with_step(no: usize, step: Vec<Token>) -> Line {
+	pub fn with_step(no: usize, step: Tokens) -> Line {
 		Line {
 			no: no,
 			step: step,
-			method: Vec::new(),
+			method: Tokens::new(),
 			deps: Vec::new(),
 		}
 	}
-	pub fn full(no: usize, step: Vec<Token>, method: Vec<Token>, deps: Vec<usize>) -> Line {
+	pub fn full(no: usize, step: Tokens, method: Tokens, deps: Vec<usize>) -> Line {
 		Line {
 			no: no,
 			step: step,
@@ -306,8 +306,10 @@ impl<'a> Editor {
 	/// Constructs a new editor
 	pub fn new() -> Editor {
 		Editor {
-			lines: Lines::from_vec(vec![Line::full(0, vec![Token::Char('P')], Token::from_str("Premise"), vec![0]),
-						Line::full(1, vec![Token::Not, Token::Not, Token::Char('P')], Token::from_str("¬I 1"), vec![0])]),
+			lines: Lines::from_vec(vec![
+			           Line::full(0, Tokens::from_str("P"), Tokens::from_str("Premise"), vec![0]),
+			           Line::full(1, Tokens::from_str("¬¬P"), Tokens::from_str("¬I 1"), vec![0])
+			       ]),
 			cursor: Cursor::new(),
 		}
 	}

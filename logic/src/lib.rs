@@ -5,4 +5,4 @@ pub mod tok;
 pub mod form;
 
 pub use form::Formula;
-pub use tok::Token;
+pub use tok::{Token, Tokens};
