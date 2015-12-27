@@ -275,15 +275,16 @@ impl Cursor {
 		Ok(())
 	}
 	
+	/// Is end of tokens
 	/// Returns true if at the end of `Col::Step` or `Col::Method`
-	fn is_eol(&self, lines: &Lines) -> bool {
+	fn is_eot(&self, lines: &Lines) -> bool {
 		self.i == match self.col {
 			Col::Step   => lines[self.no].step.len(),
 			Col::Method => lines[self.no].method.len(),
 		}
 	}
 	
-	/// Delete the character in front of the cursor. If on an empty line && at the en, delete line. If no chars in front, error.
+	/// Delete the character in front of the cursor. If on an empty line && at the end, delete line. If no chars in front, returns `Err(())`.
 	pub fn delete(&mut self, lines: &mut Lines) -> Result<(), ()> {
 		if lines[self.no].is_empty() && self.col == Col::Method {
 			if lines.len() == 1 {
@@ -296,7 +297,7 @@ impl Cursor {
 			self.i = 0;
 			
 			Ok(())
-		} else if self.is_eol(lines) {
+		} else if self.is_eot(lines) {
 			Err(())
 		} else {
 			// Delete char in front
@@ -307,9 +308,34 @@ impl Cursor {
 			Ok(())
 		}
 	}
+	/// Delete the character behind the character. If on an empty line && at the start, delete line. If no chars behind, returns `Err(())`
+	pub fn backspace(&mut self, lines: &mut Lines) -> Result<(), ()> {
+		if lines[self.no].is_empty() && self.col == Col::Step {
+			if lines.len() == 1 {
+				return Err(());
+			}
+			// Delete the line
+			lines.delete_line(self.no);
+			
+			if self.no != 0 { self.no -= 1; };
+			self.i = 0;
+			
+			Ok(())
+		} else if self.i == 0 {
+			Err(())
+		} else {
+			// Delete char behind the cursor
+			match self.col {
+				Col::Step   => { let _ = lines[self.no].step.remove(self.i - 1); },
+				Col::Method => { let _ = lines[self.no].method.remove(self.i - 1); },
+			}
+			self.i -= 1;
+			Ok(())
+		}
+	}
 	/// Add a newline to `lines` if the cursor is at the end of the line.
 	pub fn newline(&mut self, lines: &mut Lines) -> Result<(), ()> {
-		if !self.is_eol(lines) {
+		if !self.is_eot(lines) {
 			// Don't place a newline if the cursor isn't at the end of the line.
 			return Err(());
 		}
@@ -321,7 +347,7 @@ impl Cursor {
 		
 		Ok(())
 	}
-	/// Inserts a token at the cursor pos in `lines`.
+	/// Inserts a token at the cursor pos in `lines`. Simplifies the line affected.
 	pub fn insert(&mut self, lines: &mut Lines, c: Token) -> Result<(), ()> {
 		let ret = lines.insert_at(self, c);
 		if let Ok(n) = ret {
@@ -377,6 +403,9 @@ impl<'a> Editor {
 			},
 			key::Return => {
 				let _ = self.cursor.newline(&mut self.lines);
+			},
+			key::BackSpace => {
+				let _ = self.cursor.backspace(&mut self.lines);
 			},
 			_ => {
 				let _ = self.cursor.insert(&mut self.lines, match keyval_to_unicode(e.keyval) {
