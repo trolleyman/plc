@@ -1,10 +1,61 @@
 use std::fmt::{self, Write, Debug, Formatter};
 use std::mem;
+use std::ops::{Deref, DerefMut};
 
 use gtk::signal::Inhibit;
 use gdk::EventKey;
 
 use logic::Token;
+
+#[derive(Clone)]
+pub struct Lines {
+	inner: Vec<Line>
+}
+impl Lines {
+	/// Creates a lines object with one line.
+	pub fn new() -> Lines {
+		Lines {
+			inner: vec![Line::new(0)]
+		}
+	}
+	/// Creates a lines object from a vector.
+	pub fn from_vec(v: Vec<Line>) -> Lines {
+		Lines {
+			inner: v
+		}
+	}
+	
+	/// Inserts `nl` at `nl.no` in `lines`, and updates all line numbers in `lines`
+	pub fn insert_line(&mut self, nl: Line) {
+		let no = nl.no;
+		for l in self.iter_mut() {
+			if l.no >= no {
+				l.no += 1;
+			}
+		}
+		self.insert(no, nl);
+	}
+	/// Deletes the line at `no` in `lines`, and updates all line numbers in `lines`
+	pub fn delete_line(&mut self, no: usize) {
+		self.inner.remove(no);
+		for l in self.iter_mut() {
+			if l.no >= no {
+				l.no -= 1;
+			}
+		}
+	}
+}
+impl Deref for Lines {
+	type Target = Vec<Line>;
+	fn deref(&self) -> &Vec<Line> {
+		&self.inner
+	}
+}
+impl DerefMut for Lines {
+	fn deref_mut(&mut self) -> &mut Vec<Line> {
+		&mut self.inner
+	}
+}
 
 #[derive(Clone)]
 pub struct Line {
@@ -107,6 +158,11 @@ impl Line {
 		}
 		f.pad(&format!("{: >3}. {: <20} {: <10} {{{}}}", self.no + 1, step_str, method_str, dep_str))
 	}
+	
+	/// True if `self.step` and `self.method` are empty
+	pub fn is_empty(&self) -> bool {
+		self.step.is_empty() && self.method.is_empty()
+	}
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -193,21 +249,46 @@ impl Cursor {
 		Ok(())
 	}
 	
+	/// Returns true if at the end of `Col::Step` or `Col::Method`
+	fn is_eol(&self, lines: &Lines) -> bool {
+		self.i == match self.col {
+			Col::Step   => lines[self.no].step.len(),
+			Col::Method => lines[self.no].method.len(),
+		}
+	}
+	
+	/// Delete the character in front of the cursor. If on an empty line && at the en, delete line. If no chars in front, error.
+	pub fn delete(&mut self, lines: &mut Lines) -> Result<(), ()> {
+		if lines[self.no].is_empty() && self.col == Col::Method {
+			if lines.len() == 1 {
+				return Err(());
+			}
+			// Delete the line
+			lines.delete_line(self.no);
+			
+			if self.no != 0 { self.no -= 1; };
+			self.i = 0;
+			
+			Ok(())
+		} else if self.is_eol(lines) {
+			Err(())
+		} else {
+			// Delete char in front
+			match self.col {
+				Col::Step   => { let _ = lines[self.no].step.remove(self.i); },
+				Col::Method => { let _ = lines[self.no].method.remove(self.i); },
+			}
+			Ok(())
+		}
+	}
 	/// Add a newline to `lines` if the cursor is at the end of the line.
-	pub fn newline(&mut self, lines: &mut Vec<Line>) -> Result<(), ()> {
-		if !(  (self.col == Col::Step && self.i == lines[self.no].step.len())
-			|| (self.col == Col::Method && self.i == lines[self.no].method.len())) {
+	pub fn newline(&mut self, lines: &mut Lines) -> Result<(), ()> {
+		if !self.is_eol(lines) {
 			// Don't place a newline if the cursor isn't at the end of the line.
 			return Err(());
 		}
 		
-		let no = self.no + 1;
-		for l in lines.iter_mut() {
-			if l.no >= no {
-				l.no += 1;
-			}
-		}
-		lines.insert(no, Line::new(no));
+		lines.insert_line(Line::new(self.no + 1));
 		
 		self.no += 1;
 		self.i = 0;
@@ -217,7 +298,7 @@ impl Cursor {
 }
 
 pub struct Editor {
-	lines: Vec<Line>,
+	lines: Lines,
 	cursor: Cursor,
 }
 
@@ -225,8 +306,8 @@ impl<'a> Editor {
 	/// Constructs a new editor
 	pub fn new() -> Editor {
 		Editor {
-			lines: vec![Line::full(0, vec![Token::Char('P')], Token::from_str("Premise"), vec![0]),
-						Line::full(1, vec![Token::Not, Token::Not, Token::Char('P')], Token::from_str("¬I 1"), vec![0])],
+			lines: Lines::from_vec(vec![Line::full(0, vec![Token::Char('P')], Token::from_str("Premise"), vec![0]),
+						Line::full(1, vec![Token::Not, Token::Not, Token::Char('P')], Token::from_str("¬I 1"), vec![0])]),
 			cursor: Cursor::new(),
 		}
 	}
@@ -253,6 +334,9 @@ impl<'a> Editor {
 			},
 			key::Left => {
 				let _ = self.cursor.left(&self.lines);
+			},
+			key::Delete => {
+				let _ = self.cursor.delete(&mut self.lines);
 			},
 			key::Return => {
 				let _ = self.cursor.newline(&mut self.lines);
