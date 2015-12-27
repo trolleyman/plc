@@ -10,9 +10,6 @@ pub enum Token {
 	Implies,
 	Iff,
 }
-impl Token {
-	
-}
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Tokens {
@@ -78,13 +75,15 @@ impl Tokens {
 	
 	/// Simplify the token vector. E.g. convert `[Token::Char('-'), Token::Char('>')]` into `[Token::Implies]`
 	/// Takes O(n) currently.
-	pub fn simplify(&mut self) {
+	/// Returns the number of tokens removed.
+	pub fn simplify(&mut self) -> usize {
 		use Token::*;
 		use consts::*;
 		
+		let old_len = self.len();
 		let mut res = Vec::with_capacity(self.len());
 		{
-			let mut ts: &[Token] = self.inner.as_ref();
+			let mut ts: &[Token] = self.as_ref();
 			while ts.len() > 0 {
 				if ts.starts_with(TOK_STR_NOT) {
 					ts = &ts[TOK_STR_NOT.len()..];
@@ -113,6 +112,9 @@ impl Tokens {
 				} else if ts.starts_with(TOK_STR_IFF) {
 					ts = &ts[TOK_STR_IFF.len()..];
 					res.push(Iff);
+				} else if ts.starts_with(TOK_STR_IFF2) {
+					ts = &ts[TOK_STR_IFF2.len()..];
+					res.push(Iff);
 				} else if ts.starts_with(TOK_STR_PRETTY_IFF) {
 					ts = &ts[TOK_STR_PRETTY_IFF.len()..];
 					res.push(Iff);
@@ -123,6 +125,7 @@ impl Tokens {
 			}
 		}
 		*self = Tokens{ inner: res };
+		old_len - self.len()
 	}
 }
 impl Deref for Tokens {

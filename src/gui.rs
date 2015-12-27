@@ -7,6 +7,7 @@ use gtk::traits::*;
 use gdk::EventType;
 
 pub struct Gui {
+	#[allow(dead_code)]
 	win: &'static mut Window,
 	edit: Editor,
 }

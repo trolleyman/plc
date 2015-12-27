@@ -6,56 +6,7 @@ use gtk::signal::Inhibit;
 use gdk::EventKey;
 
 use logic::{Token, Tokens};
-
-#[derive(Clone)]
-pub struct Lines {
-	inner: Vec<Line>
-}
-impl Lines {
-	/// Creates a lines object with one line.
-	pub fn new() -> Lines {
-		Lines {
-			inner: vec![Line::new(0)]
-		}
-	}
-	/// Creates a lines object from a vector.
-	pub fn from_vec(v: Vec<Line>) -> Lines {
-		Lines {
-			inner: v
-		}
-	}
-	
-	/// Inserts `nl` at `nl.no` in `lines`, and updates all line numbers in `lines`
-	pub fn insert_line(&mut self, nl: Line) {
-		let no = nl.no;
-		for l in self.iter_mut() {
-			if l.no >= no {
-				l.no += 1;
-			}
-		}
-		self.insert(no, nl);
-	}
-	/// Deletes the line at `no` in `lines`, and updates all line numbers in `lines`
-	pub fn delete_line(&mut self, no: usize) {
-		self.inner.remove(no);
-		for l in self.iter_mut() {
-			if l.no >= no {
-				l.no -= 1;
-			}
-		}
-	}
-}
-impl Deref for Lines {
-	type Target = Vec<Line>;
-	fn deref(&self) -> &Vec<Line> {
-		&self.inner
-	}
-}
-impl DerefMut for Lines {
-	fn deref_mut(&mut self) -> &mut Vec<Line> {
-		&mut self.inner
-	}
-}
+use logic::consts::ALLOWED_CHARS;
 
 #[derive(Clone)]
 pub struct Line {
@@ -162,6 +113,81 @@ impl Line {
 	/// True if `self.step` and `self.method` are empty
 	pub fn is_empty(&self) -> bool {
 		self.step.is_empty() && self.method.is_empty()
+	}
+	
+	/// Simplifies all `Tokens` structs contained within this struct.
+	pub fn simplify(&mut self) {
+		self.step.simplify();
+		self.method.simplify();
+	}
+}
+
+#[derive(Clone)]
+pub struct Lines {
+	inner: Vec<Line>
+}
+impl Lines {
+	/// Creates a lines object with one line.
+	pub fn new() -> Lines {
+		Lines {
+			inner: vec![Line::new(0)]
+		}
+	}
+	/// Creates a lines object from a vector.
+	pub fn from_vec(v: Vec<Line>) -> Lines {
+		Lines {
+			inner: v
+		}
+	}
+	
+	/// Inserts `nl` at `nl.no` in `lines`, and updates all line numbers in `lines`
+	pub fn insert_line(&mut self, nl: Line) {
+		let no = nl.no;
+		for l in self.iter_mut() {
+			if l.no >= no {
+				l.no += 1;
+			}
+		}
+		self.insert(no, nl);
+	}
+	/// Deletes the line at `no` in `lines`, and updates all line numbers in `lines`
+	pub fn delete_line(&mut self, no: usize) {
+		self.inner.remove(no);
+		for l in self.iter_mut() {
+			if l.no >= no {
+				l.no -= 1;
+			}
+		}
+	}
+	
+	/// Simplifies all the lines that this structure holds.
+	pub fn simplify(&mut self) {
+		for l in self.iter_mut() {
+			l.simplify();
+		}
+	}
+	
+	/// Inserts token `tok` at `cursor` pos.
+	/// Returns Ok(n) with n being the number of tokens removed.
+	pub fn insert_at(&mut self, cursor: &Cursor, tok: Token) -> Result<usize, ()> {
+		let toks = match cursor.col {
+			Col::Step   => &mut self[cursor.no].step,
+			Col::Method => &mut self[cursor.no].method,
+		};
+		toks.insert(cursor.i, tok);
+		let n = toks.simplify();
+		Ok(n)
+	}
+}
+impl Deref for Lines {
+	type Target = Vec<Line>;
+	fn deref(&self) -> &Vec<Line> {
+		&self.inner
+	}
+}
+impl DerefMut for Lines {
+	fn deref_mut(&mut self) -> &mut Vec<Line> {
+		&mut self.inner
 	}
 }
 
@@ -295,6 +321,15 @@ impl Cursor {
 		
 		Ok(())
 	}
+	/// Inserts a token at the cursor pos in `lines`.
+	pub fn insert(&mut self, lines: &mut Lines, c: Token) -> Result<(), ()> {
+		let ret = lines.insert_at(self, c);
+		if let Ok(n) = ret {
+			self.i += 1;
+			self.i -= n;
+		}
+		ret.map(|_| ())
+	}
 }
 
 pub struct Editor {
@@ -344,10 +379,13 @@ impl<'a> Editor {
 				let _ = self.cursor.newline(&mut self.lines);
 			},
 			_ => {
-				return Inhibit(false);
-			},
+				let _ = self.cursor.insert(&mut self.lines, match keyval_to_unicode(e.keyval) {
+					Some(c) if c.is_alphabetic() || ALLOWED_CHARS.contains(c) => Token::Char(c),
+					_ => { return Inhibit(false); },
+				});
+			}
 		}
-		println!(" *** Editor *** - Cursor: {:?} \n{:?}", self.cursor, self);
+		println!(" *** Editor *** - Cursor: {:?} \n{:#?}", self.cursor, self);
 		Inhibit(true)
 	}
 }
