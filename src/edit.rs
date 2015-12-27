@@ -214,7 +214,7 @@ impl Cursor {
 		}
 	}
 	/// Move the cursor to the right. Wrap at end of line. Error at end of text.
-	pub fn right(&mut self, lines: &[Line]) -> Result<(), ()> {
+	pub fn right(&mut self, lines: &Lines) -> Result<(), ()> {
 		let l = match lines.get(self.no) {
 			Some(l) => l,
 			None    => { *self = Cursor::new(); return Err(()); },
@@ -246,7 +246,7 @@ impl Cursor {
 		}
 	}
 	/// Move the cursor to the left. Wrap at start of line. Error at start of text.
-	pub fn left(&mut self, lines: &[Line]) -> Result<(), ()> {
+	pub fn left(&mut self, lines: &Lines) -> Result<(), ()> {
 		let l = match lines.get(self.no) {
 			Some(l) => l,
 			None    => { *self = Cursor::new(); return Err(()); },
