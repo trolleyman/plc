@@ -61,7 +61,7 @@ impl DerefMut for Lines {
 pub struct Line {
 	/// The line number of the proof, starting at 0. It is only visually where everything is incremented
 	pub no: usize,
-	/// A step of the proof. e.g. (P^Q)->P. This is a vector of tokens that can be invalid.
+	/// A step of the proof. e.g. (P\^Q)->P. This is a vector of tokens that can be invalid.
 	pub step: Vec<Token>,
 	/// A token string representing the method of the proof.
 	pub method: Vec<Token>,
