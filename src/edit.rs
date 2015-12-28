@@ -119,12 +119,21 @@ impl Line {
 }
 impl Display for Line {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-		try!(write!(f, "{: >3}. {: <20} {: <15} {{", self.no + 1, self.step, self.method));
-		let len = self.deps.len();
-		for i in 0..len - 1 {
-			try!(write!(f, "{}, ", self.deps[i]));
+		if !f.alternate() {
+			try!(write!(f, "{: >3}. {: <20} {: <15} {{", self.no + 1, self.step, self.method));
+			let len = self.deps.len();
+			for i in 0..len - 1 {
+				try!(write!(f, "{}, ", self.deps[i]));
+			}
+			try!(write!(f, "{}}}", self.deps[len - 1]));
+		} else {
+			try!(write!(f, "{: >3}. {: <#20} {: <#15} {{", self.no + 1, self.step, self.method));
+			let len = self.deps.len();
+			for i in 0..len - 1 {
+				try!(write!(f, "{}, ", self.deps[i]));
+			}
+			try!(write!(f, "{}}}", self.deps[len - 1]));
 		}
-		try!(write!(f, "{}}}", self.deps[len - 1]));
 		Ok(())
 	}
 }
@@ -199,8 +208,14 @@ impl DerefMut for Lines {
 }
 impl Display for Lines {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-		for l in self.iter() {
-			try!(writeln!(f, "{}", l));
+		if !f.alternate() {
+			for l in self.iter() {
+				try!(writeln!(f, "{}", l));
+			}
+		} else {
+			for l in self.iter() {
+				try!(writeln!(f, "{:#}", l));
+			}
 		}
 		Ok(())
 	}
