@@ -20,6 +20,7 @@ impl Token {
 			&Token::Implies     => s.push('→'),
 			&Token::Iff         => s.push('↔'),
 		}
+		s.push('\u{2009}'); // THIN_SPACE
 	}
 }
 impl Display for Token {
