@@ -1,4 +1,4 @@
-use std::fmt::{self, Write, Debug, Formatter};
+use std::fmt::{self, Write, Display, Formatter};
 use std::mem;
 use std::ops::{Deref, DerefMut};
 
@@ -103,7 +103,7 @@ impl Line {
 				try!(write!(method_str, "{:#}", self.method));
 			}
 		}
-		f.pad(&format!("{: >3}. {: <20} {: <10} {{{}}}", self.no + 1, step_str, method_str, dep_str))
+		f.pad(&format!("{: >3}. {: <20} {: <15} {{{}}}", self.no + 1, step_str, method_str, dep_str))
 	}
 	
 	/// True if `self.step` and `self.method` are empty
@@ -115,6 +115,17 @@ impl Line {
 	pub fn simplify(&mut self) {
 		self.step.simplify();
 		self.method.simplify();
+	}
+}
+impl Display for Line {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+		try!(write!(f, "{: >3}. {: <20} {: <15} {{", self.no + 1, self.step, self.method));
+		let len = self.deps.len();
+		for i in 0..len - 1 {
+			try!(write!(f, "{}, ", self.deps[i]));
+		}
+		try!(write!(f, "{}}}", self.deps[len - 1]));
+		Ok(())
 	}
 }
 
@@ -184,6 +195,14 @@ impl Deref for Lines {
 impl DerefMut for Lines {
 	fn deref_mut(&mut self) -> &mut Vec<Line> {
 		&mut self.inner
+	}
+}
+impl Display for Lines {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+		for l in self.iter() {
+			try!(writeln!(f, "{}", l));
+		}
+		Ok(())
 	}
 }
 
@@ -372,13 +391,13 @@ impl Editor {
 			cursor: Cursor::new(),
 		}
 	}
-	/// Gets a ref to the line numbered `v` in the proof.
-	pub fn line<'a>(&'a self, v: usize) -> Option<&'a Line> {
-		self.lines.get(v - 1)
+	/// Gets a ref to `self.lines`.
+	pub fn lines(&self) -> &Lines {
+		&self.lines
 	}
-	/// Gets the number of lines in the proof.
-	pub fn lines(&self) -> usize {
-		self.lines.len()
+	/// Gets a ref to `self.cursor`.
+	pub fn cursor(&self) -> &Cursor {
+		&self.cursor
 	}
 	/// Handles the input given to it, and whether to pass the input on or not.
 	pub fn handle_input(&mut self, e: &EventKey) -> Inhibit {
@@ -412,11 +431,11 @@ impl Editor {
 				});
 			}
 		}
-		println!(" *** Editor *** - Cursor: {:?} \n{:#?}", self.cursor, self);
+		println!(" *** Editor *** - Cursor: {:?} \n{:#}", self.cursor, self);
 		Inhibit(true)
 	}
 }
-impl Debug for Editor {
+impl Display for Editor {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
 		for l in self.lines.iter() {
 			try!(l.fmt_cursor(f, &self.cursor));

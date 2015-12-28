@@ -162,9 +162,15 @@ impl DerefMut for Tokens {
 }
 impl Display for Tokens {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+		let mut s = String::with_capacity(self.len() + 16);
 		for t in self.iter() {
-			try!(t.fmt(f));
+			if !f.alternate() {
+				try!(write!(s, "{}", t));
+			} else {
+				try!(write!(s, "{:#}", t));
+			}
 		}
+		try!(f.pad(&s));
 		Ok(())
 	}
 }
