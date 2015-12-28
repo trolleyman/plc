@@ -1,10 +1,11 @@
 
 use edit::Editor;
 
-use gtk::{self, Window, Frame, EventBox, DrawingArea, WindowPosition};
+use gtk::{self, Widget, Window, Frame, EventBox, DrawingArea, WindowPosition};
 use gtk::signal::Inhibit;
 use gtk::traits::*;
 use gdk::EventType;
+use cairo::{Context, Antialias};
 
 pub struct Gui {
 	#[allow(dead_code)]
@@ -29,12 +30,21 @@ impl Gui {
 			let eb = EventBox::new().unwrap();
 			win.connect_key_press_event(|_, e| {
 				if e._type == EventType::KeyPress {
-					::get_gui().map(|gui| { gui.edit.handle_input(e) } ).unwrap_or(Inhibit(false))
+					let ih = ::get_gui().edit.handle_input(e);
+					if ih == Inhibit(true) {
+						::get_gui().dirty();
+					}
+					ih
 				} else {
 					Inhibit(false)
 				}
 			});
 			let da = DrawingArea::new().unwrap();
+			da.connect_draw(|w: Widget, c: Context| {
+				::get_gui().render(w, c);
+				
+				Inhibit(false)
+			});
 			eb.add(&da);
 			da_frame.add(&eb);
 		}
@@ -45,6 +55,28 @@ impl Gui {
 		Gui {
 			win: win,
 			edit: Editor::new(),
+		}
+	}
+	
+	pub fn dirty(&self) {
+		self.win.queue_draw();
+	}
+	
+	pub fn render(&self, w: Widget, c: Context) {
+		let (_alloc_w, _alloc_h) = (w.get_allocated_width(), w.get_allocated_height());
+		
+		c.set_antialias(Antialias::Best);
+		c.new_path();
+		
+		for l in self.edit.lines().iter() {
+			let s = format!("{:#}", l);
+			c.text_path(&s);
+			let p = c.copy_path();
+			let ex = c.fill_extents();
+			c.translate(-ex.0, -ex.1);
+			c.new_path();
+			c.append_path(&p);
+			c.fill();
 		}
 	}
 }

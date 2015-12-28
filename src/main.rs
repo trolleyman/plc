@@ -1,6 +1,7 @@
 #![feature(const_fn)]
 extern crate gtk;
 extern crate gdk;
+extern crate cairo;
 
 extern crate logic;
 
@@ -13,11 +14,11 @@ pub mod edit;
 
 static mut g_gui: *mut Gui = ptr::null_mut();
 
-pub fn get_gui() -> Option<&'static mut Gui> {
+pub fn get_gui() -> &'static mut Gui {
 	unsafe { if g_gui.is_null() {
-		None
+		panic!("gui not initialized.");
 	} else {
-		Some(mem::transmute(g_gui))
+		mem::transmute(g_gui)
 	}}
 }
 
