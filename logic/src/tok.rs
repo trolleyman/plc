@@ -10,6 +10,18 @@ pub enum Token {
 	Implies,
 	Iff,
 }
+impl Token {
+	fn append_to_gui_string(&self, s: &mut String) {
+		match self {
+			&Token::Char(ref c) => s.push(*c),
+			&Token::Not         => s.push('¬'),
+			&Token::And         => s.push('&'),
+			&Token::Or          => s.push('v'),
+			&Token::Implies     => s.push('→'),
+			&Token::Iff         => s.push('↔'),
+		}
+	}
+}
 impl Display for Token {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
 		use Token::*;
@@ -159,6 +171,15 @@ impl Tokens {
 		}
 		*self = Tokens{ inner: res };
 		old_len - self.len()
+	}
+	
+	/// Returns the representation of the Tokens struct that should be used in the GUI.
+	pub fn to_gui_string(&self) -> String {
+		let mut s = String::with_capacity(self.len() + 16);
+		for t in self.iter() {
+			t.append_to_gui_string(&mut s);
+		}
+		s
 	}
 }
 impl Deref for Tokens {

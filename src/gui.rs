@@ -66,8 +66,8 @@ impl Gui {
 	pub fn render(&self, w: Widget, c: Context) {
 		let (_alloc_w, _alloc_h) = (w.get_allocated_width(), w.get_allocated_height());
 		
-		const FONT_SIZE: f64 = 20.0;
-		c.select_font_face("CMU Serif", FontSlant::Normal, FontWeight::Normal);
+		const FONT_SIZE: f64 = 15.0;
+		c.select_font_face("Helvetica", FontSlant::Normal, FontWeight::Normal);
 		c.set_antialias(Antialias::Best);
 		c.set_font_size(FONT_SIZE);
 		c.new_path();
@@ -78,7 +78,7 @@ impl Gui {
 			c.translate(FONT_SIZE * 0.1, FONT_SIZE + 10.0);
 		}
 		
-		let start_offset = 10.0 + 10.0 * ((self.edit.lines().len() as f64).log10().floor() + 1.0);
+		let start_offset = (FONT_SIZE / 2.0) + FONT_SIZE * ((self.edit.lines().len() as f64).log10().floor() + 1.0);
 		for l in self.edit.lines().iter() {
 			let mut undo_x = 0.0;
 			{ // Render the line number (Align the points all at the same x co-ordinate)
@@ -92,6 +92,16 @@ impl Gui {
 				undo_x = start_offset - ex.2;
 				c.translate(undo_x, 0.0);
 				c.append_path(&p);
+				c.fill();
+			}
+			
+			{ // Render the `step` part of the line
+				let s = l.step.to_gui_string();
+				c.new_path();
+				let trans_x = FONT_SIZE;
+				undo_x += trans_x;
+				c.translate(trans_x, 0.0);
+				c.text_path(&s);
 				c.fill();
 			}
 			
