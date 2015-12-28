@@ -401,9 +401,13 @@ impl Editor {
 	pub fn new() -> Editor {
 		Editor {
 			lines: Lines::from_vec(vec![
-			           Line::full(0, Tokens::from_str("P"), Tokens::from_str("Premise"), vec![0]),
-			           Line::full(1, Tokens::from_str("¬¬P"), Tokens::from_str("¬I 1"), vec![0])
-			       ]),
+				Line::full(0, Tokens::from_str("P"),     Tokens::from_str("Premise"), vec![0]),
+				Line::full(1, Tokens::from_str("¬¬P"),   Tokens::from_str("¬I 1"), vec![0]),
+				Line::full(2, Tokens::from_str("P->Q"),  Tokens::from_str("Premise"), vec![2]),
+				Line::full(3, Tokens::from_str("Q"),     Tokens::from_str("->E 1, 3"), vec![0, 2]),
+				Line::full(4, Tokens::from_str("R<->S"), Tokens::from_str("Premise"), vec![4]),
+				Line::full(5, Tokens::from_str("PvT"),   Tokens::from_str("vI 1"), vec![0]),
+			]),
 			cursor: Cursor::new(),
 		}
 	}
