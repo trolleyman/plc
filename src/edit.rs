@@ -375,6 +375,7 @@ impl Cursor {
 		lines.insert_line(Line::new(self.no + 1));
 		
 		self.no += 1;
+		self.col = Col::Step;
 		self.i = 0;
 		
 		Ok(())
