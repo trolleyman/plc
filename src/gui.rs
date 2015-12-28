@@ -66,29 +66,36 @@ impl Gui {
 	pub fn render(&self, w: Widget, c: Context) {
 		let (_alloc_w, _alloc_h) = (w.get_allocated_width(), w.get_allocated_height());
 		
+		const FONT_SIZE: f64 = 20.0;
 		c.select_font_face("CMU Serif", FontSlant::Normal, FontWeight::Normal);
 		c.set_antialias(Antialias::Best);
-		c.set_font_size(24.0);
+		c.set_font_size(FONT_SIZE);
 		c.new_path();
 		
 		{
 			c.text_path("H");
-			let p = c.copy_path();
 			let ex = c.fill_extents();
-			println!("extent: {:?}", ex);
-			c.translate(- ex.0 - 10.0, - ex.1 - 10.0);
+			c.translate(FONT_SIZE * 0.1, FONT_SIZE + 10.0);
 		}
 		
+		let start_offset = 10.0 + 10.0 * ((self.edit.lines().len() as f64).log10().floor() + 1.0);
 		for l in self.edit.lines().iter() {
-			let s = format!("{:#}", l);
-			c.text_path(&s);
-			let p = c.copy_path();
-			let ex = c.fill_extents();
-			c.translate(-ex.0, -ex.1);
-			c.new_path();
-			c.append_path(&p);
-			c.fill();
-			break;
+			let mut undo_x = 0.0;
+			{ // Render the line number (Align the points all at the same x co-ordinate)
+				let s = format!("{}.", l.no + 1);
+				c.new_path();
+				c.text_path(&s);
+				let p = c.copy_path();
+				let ex = c.fill_extents();
+				c.new_path();
+				//println!("ex0: {}, ex1: {}, ex2: {}, ex3: {}", ex.0, ex.1, ex.2, ex.3);
+				undo_x = start_offset - ex.2;
+				c.translate(undo_x, 0.0);
+				c.append_path(&p);
+				c.fill();
+			}
+			
+			c.translate(-undo_x, FONT_SIZE + 10.0);
 		}
 	}
 }
