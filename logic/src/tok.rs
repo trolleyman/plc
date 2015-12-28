@@ -57,11 +57,17 @@ impl Tokens {
 			if s.starts_with(STR_NOT) {
 				s = &s[STR_NOT.len()..];
 				res.push(Not);
+			} else if s.starts_with(STR_NOT2) {
+				s = &s[STR_NOT2.len()..];
+				res.push(Not);
 			} else if s.starts_with(STR_PRETTY_NOT) {
 				s = &s[STR_PRETTY_NOT.len()..];
 				res.push(Not);
 			} else if s.starts_with(STR_AND) {
 				s = &s[STR_AND.len()..];
+				res.push(And);
+			} else if s.starts_with(STR_AND2) {
+				s = &s[STR_AND2.len()..];
 				res.push(And);
 			} else if s.starts_with(STR_PRETTY_AND) {
 				s = &s[STR_PRETTY_AND.len()..];
@@ -109,11 +115,17 @@ impl Tokens {
 				if ts.starts_with(TOK_STR_NOT) {
 					ts = &ts[TOK_STR_NOT.len()..];
 					res.push(Not);
+				} else if ts.starts_with(TOK_STR_NOT2) {
+					ts = &ts[TOK_STR_NOT2.len()..];
+					res.push(Not);
 				} else if ts.starts_with(TOK_STR_PRETTY_NOT) {
 					ts = &ts[TOK_STR_PRETTY_NOT.len()..];
 					res.push(Not);
 				} else if ts.starts_with(TOK_STR_AND) {
 					ts = &ts[TOK_STR_AND.len()..];
+					res.push(And);
+				} else if ts.starts_with(TOK_STR_AND2) {
+					ts = &ts[TOK_STR_AND2.len()..];
 					res.push(And);
 				} else if ts.starts_with(TOK_STR_PRETTY_AND) {
 					ts = &ts[TOK_STR_PRETTY_AND.len()..];
