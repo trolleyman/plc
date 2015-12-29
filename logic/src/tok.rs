@@ -11,7 +11,7 @@ pub enum Token {
 	Iff,
 }
 impl Token {
-	fn append_to_gui_string(&self, s: &mut String) {
+	fn append_to_gui_string(&self, space: bool, s: &mut String) {
 		match self {
 			&Token::Char(ref c) => s.push(*c),
 			&Token::Not         => s.push('¬'),
@@ -20,7 +20,11 @@ impl Token {
 			&Token::Implies     => s.push('→'),
 			&Token::Iff         => s.push('↔'),
 		}
-		s.push('\u{2009}'); // THIN_SPACE
+		if space {
+			s.push('\u{2009}'); // U+2009 THIN SPACE
+		} else {
+			s.push('\u{200A}'); // U+200A HAIR SPACE
+		}
 	}
 }
 impl Display for Token {
@@ -175,10 +179,10 @@ impl Tokens {
 	}
 	
 	/// Returns the representation of the Tokens struct that should be used in the GUI.
-	pub fn to_gui_string(&self) -> String {
+	pub fn to_gui_string(&self, space: bool) -> String {
 		let mut s = String::with_capacity(self.len() + 16);
 		for t in self.iter() {
-			t.append_to_gui_string(&mut s);
+			t.append_to_gui_string(space, &mut s);
 		}
 		s
 	}
